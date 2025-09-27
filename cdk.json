@@ -1,0 +1,40 @@
+{
+  "app": "python app.py",
+  "watch": {
+    "include": [
+      "**"
+    ],
+    "exclude": [
+      "README.md",
+      "cdk*.json",
+      "requirements*.txt",
+      "source.bat",
+      "**/__init__.py",
+      "python/__pycache__",
+      "tests"
+    ]
+  },
+  "context": {
+    "@aws-cdk/aws-apigateway:usagePlanKeyOrderInsensitiveId": true,
+    "@aws-cdk/core:stackRelativeExports": true,
+    "@aws-cdk/aws-rds:lowercaseDbIdentifier": true,
+    "@aws-cdk/aws-lambda:recognizeVersionProps": true,
+    "@aws-cdk/aws-cloudfront:defaultSecurityPolicyTLSv1.2_2021": true,
+    "@aws-cdk-containers/ecs-service-extensions:enableDefaultLogDriver": true,
+    "@aws-cdk/aws-ec2:uniqueImdsv2TemplateName": true,
+    "@aws-cdk/core:checkSecretUsage": true,
+    "@aws-cdk/aws-iam:minimizePolicies": true,
+    "@aws-cdk/core:target-partitions": [
+      "aws",
+      "aws-cn"
+    ],
+    "sbx": {
+      "LOG_RETENTION_TIME": "TWO_MONTHS",
+      "ACUITY_USER_ID": "31532355",
+      "ACUITY_API_KEY": "f1d28177592296ae44d57cd84b3d3c5c",
+      "SHOPIFY_STORE_DOMAIN": "les-aimants.myshopify.com",
+      "SHOPIFY_STOREFRONT_ACCESS_TOKEN": "495be658c9a93ba95807d1a826ef63ea",
+      "SHOPIFY_API_VERSION": "2024-07"
+    }
+  }
+}

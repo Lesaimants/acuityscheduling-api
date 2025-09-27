@@ -1,0 +1,9 @@
+.venv
+cdk.out
+layers
+!layers/dependencies/python/decimalencoder.py
+!layers/dependencies/python/exception_handling.py
+!layers/dependencies/python/http_utils.py
+!layers/dependencies/python/utils.py
+!layers/dependencies/python/db_repository.py
+!layers/dependencies/python/db_transaction_items.py

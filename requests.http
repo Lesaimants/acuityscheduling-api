@@ -1,0 +1,124 @@
+### Variables de entorno locales para pruebas
+# @host = tu-api-id.execute-api.us-west-2.amazonaws.com/prod
+# @token = {{customerAccessToken}}
+
+############################################################
+### POST /customer-token (login de cliente) - customer-token
+# Nota: Este endpoint NO requiere Authorization.
+POST https://{{host}}/customer-token
+Content-Type: application/json
+
+{
+  "email": "cliente@example.com",
+  "password": "Password123!"
+}
+
+# Respuesta esperada (200):
+# { "accessToken": "xxx", "expiresAt": "2025-10-29T20:02:05Z" }
+# Respuesta (401) si credenciales inválidas:
+# { "success": false, "error": "Credenciales inválidas", "details": ["Unidentified customer"] }
+
+############################################################
+### GET / (listar calendarios) - get-calendars
+GET https://{{host}}/
+Accept: application/json
+Authorization: Bearer {{token}}
+
+############################################################
+### GET /appointment-types (listar tipos de cita) - get-appointment-types
+GET https://{{host}}/appointment-types
+Accept: application/json
+Authorization: Bearer {{token}}
+
+############################################################
+### POST /availability (horarios disponibles) - get-appointments (modo availability)
+# Requiere appointmentTypeId y date. Opcionales: calendarId, timezone.
+POST https://{{host}}/availability
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "resource": "availability",
+  "date": "2025-09-20",
+  "appointmentTypeId": 6789,
+  "timezone": "America/Mexico_City"
+}
+
+############################################################
+### POST /availability (citas por rango) - get-appointments (modo appointments)
+# Requiere start_date y end_date. Opcionales: calendarId, appointmentTypeId, limit, page.
+POST https://{{host}}/availability
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "resource": "appointments",
+  "start_date": "2025-09-20",
+  "end_date": "2025-09-25"
+}
+
+############################################################
+### POST / (crear cita) - create-appointment
+# Requiere datetime (ISO 8601 con zona), appointmentTypeID y calendarID.
+# Opcionales: timezone, notes. Los datos del cliente (phone/email) los aporta el authorizer.
+POST https://{{host}}/
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "datetime": "2025-09-21T10:00:00-05:00",
+  "appointmentTypeID": 6789,
+  "calendarID": 12345,
+  "timezone": "America/Mexico_City",
+  "notes": "Observaciones del cliente"
+}
+
+############################################################
+### POST /user-appointments (citas del usuario) - get-user-appointment
+# Requiere start_date y end_date. El servicio usa search por teléfono (o email) del authorizer.
+POST https://{{host}}/user-appointments
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{}
+
+############################################################
+### PUT / (reprogramar cita) - edit-appointment (reschedule)
+# Requiere action="reschedule", appointmentId y datetime.
+# Opcionales: calendarID, appointmentTypeID, timezone.
+PUT https://{{host}}/
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "action": "reschedule",
+  "appointmentId": 11111,
+  "datetime": "2025-09-22T11:30:00-05:00",
+  "timezone": "America/Mexico_City"
+}
+
+############################################################
+### PUT / (editar campos) - edit-appointment (update)
+# Requiere action="update" y appointmentId. Debe incluir al menos uno: notes, label o fields.
+PUT https://{{host}}/
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "action": "update",
+  "appointmentId": 11111,
+  "notes": "Actualizar nota de la cita"
+}
+
+############################################################
+### POST /cancel (cancelar cita) - cancel-appointment
+# Requiere appointmentId. Opcionales: re    ason, notifyClient.
+POST https://{{host}}/cancel
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "appointmentId": 11111,
+  "reason": "No podré asistir",
+  "notifyClient": true
+}
