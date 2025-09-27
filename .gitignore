@@ -1,5 +1,6 @@
 .venv
 cdk.out
+.idea
 layers
 !layers/dependencies/python/decimalencoder.py
 !layers/dependencies/python/exception_handling.py
