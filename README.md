@@ -1,6 +1,4 @@
-
 # Shopify ↔ Acuity Appointments API (AWS CDK + Lambdas)
-
 Este proyecto implementa una API en AWS para:
 - Autenticar clientes de Shopify (Storefront) mediante un Lambda Authorizer.
 - Consultar calendarios y disponibilidad en Acuity Scheduling.
@@ -8,225 +6,235 @@ Este proyecto implementa una API en AWS para:
 - Mantener el vínculo entre el cliente de Shopify y el cliente de Acuity en DynamoDB.
 
 La solución está construida con AWS CDK (v2) en Python, AWS Lambda (Python 3.12), API Gateway REST y DynamoDB.
-
-
 ## Arquitectura (alto nivel)
-
 - API Gateway (REST):
-  - Protegido por un Lambda Authorizer (Token Authorizer) que valida el customerAccessToken de Shopify Storefront.
+    - Protegido por un Lambda Authorizer (Token Authorizer) que valida el customerAccessToken de Shopify Storefront.
+
 - Lambdas (Python 3.12):
-  - authorizer: valida el token del cliente de Shopify contra Storefront GraphQL y adjunta datos del cliente al contexto de API Gateway.
-  - get-calendars: lista los calendarios configurados en Acuity.
-  - get-appointments: consulta citas (appointments) por rango de fechas o disponibilidad (availability) por fecha.
-  - get-user-appointment: obtiene las citas en Acuity del usuario autenticado (filtrando por su clientID de Acuity).
-  - create-appointment: crea una cita en Acuity para el usuario autenticado (resolviendo/creando clientID en Acuity si falta).
-  - edit-appointment: edita o reprograma una cita existente del usuario.
-  - cancel-appointment: cancela una cita existente del usuario.
+    - authorizer: valida el token del cliente de Shopify contra Storefront GraphQL y adjunta datos del cliente al contexto de API Gateway.
+    - get-calendars: lista los calendarios configurados en Acuity.
+    - get-appointments: consulta citas por rango de fechas o disponibilidad por fecha.
+    - get-user-appointment: obtiene las citas del usuario autenticado (filtrando por su clientID de Acuity).
+    - create-appointment: crea una cita para el usuario autenticado (resolviendo/creando clientID en Acuity si falta).
+    - edit-appointment: edita o reprograma una cita existente del usuario.
+    - cancel-appointment: cancela una cita existente del usuario.
+
 - DynamoDB:
-  - Tabla de vínculos users_links para relacionar cliente de Shopify ↔ cliente de Acuity (clientID).
+    - Tabla users_links para relacionar cliente de Shopify ↔ cliente de Acuity (clientID).
 
+## Requisitos e instalación de herramientas
+- Python 3.12
+- AWS CLI v2 instalado y configurado
+- Node.js y npm (para instalar CDK CLI)
+- AWS CDK v2 (CLI)
+- virtualenv (recomendado)
 
-## Estructura del repositorio
+Instalación y verificación:
+``` bash
+# Instalar CDK CLI (requiere npm)
+npm install -g aws-cdk
 
-lambdas/ authorizer/ get-calendars/ get-appointments/ get-user-appointment/ create-appointment/ edit-appointment/ cancel-appointment/ layers/ dependencies/python/ # utilidades compartidas (db_repository, http_utils, etc.) project/ api_gateway.py # definición del API Gateway y rutas lambdas.py # creación y configuración de Lambdas permissions.py # políticas IAM y rol de ejecución stack.py # stack principal (tablas, lambdas, api) tables.py # tablas de DynamoDB app.py # entrypoint CDK requirements.txt # dependencias CDK requirements_layers.txt # (opcional) dependencias para la layer requests.http # ejemplos de pruebas manuales
+# Verificar versiones
+python3.12 --version
+aws --version
+cdk --version
+```
+Dependencias del proyecto:
+- requirements.txt: dependencias para CDK y utilidades del proyecto.
+- requirements_layers.txt (opcional): dependencias que irán en la Lambda Layer.
 
+## Preparación del entorno
+1. Crear y activar entorno virtual
+``` bash
+# Linux/Mac
+python3.12 -m venv .venv
+source .venv/bin/activate
 
-## Variables de entorno
+# Windows (PowerShell)
+# python -m venv .venv
+# .\.venv\Scripts\Activate.ps1
+```
+1. Actualizar pip (opcional pero recomendado)
+``` bash
+pip install --upgrade pip
+```
+1. Instalar dependencias del proyecto
+``` bash
+pip install -r requirements.txt
+```
+1. Instalar dependencias para la Lambda Layer (opcional)
 
-Estas variables se inyectan a los Lambdas desde CDK (ver `project/lambdas.py`). Importante:
-- ACUITY_USER_ID y ACUITY_API_KEY siempre están presentes por diseño. No es necesario validarlas en los lambdas.
+- Carpeta objetivo: layers/dependencies/python/
+``` bash
+# Crear carpeta si no existe
+mkdir -p layers/dependencies/python
+
+# Instalar dependencias de la layer en la ruta esperada por Lambda
+pip install -r requirements_layers.txt -t layers/dependencies/python
+```
+Notas:
+- Mantén solo paquetes necesarios para reducir tamaño del asset (puedes limpiar tests, *.dist-info si fuera necesario).
+- CDK empaquetará esta carpeta como asset de la layer si el stack la referencia.
+
+## Variables de entorno (Lambdas)
+Estas variables se inyectan a los Lambdas desde CDK. Importante:
+- ACUITY_USER_ID y ACUITY_API_KEY siempre están presentes por diseño (no requieren validación en runtime).
 
 Variables:
-- USER_LINKS_TABLE: nombre de la tabla DynamoDB para vínculos Shopify↔Acuity (la provee CDK).
+- USER_LINKS_TABLE: nombre de la tabla DynamoDB para vínculos Shopify↔Acuity.
 - ACUITY_USER_ID: User ID numérico de Acuity (Basic Auth).
 - ACUITY_API_KEY: API Key de Acuity (Basic Auth).
 - SHOPIFY_STORE_DOMAIN: dominio myshopify.com de tu tienda (para el authorizer).
-- SHOPIFY_STOREFRONT_ACCESS_TOKEN: token Storefront API para validar el customerAccessToken del cliente (authorizer).
-- SHOPIFY_API_VERSION: versión de la Storefront API (ej.: 2024-07). 
+- SHOPIFY_STOREFRONT_ACCESS_TOKEN: token Storefront API para validar el customerAccessToken (authorizer).
+- SHOPIFY_API_VERSION: versión de la Storefront API (ej.: 2024-07).
 
-Sugerencia: puedes definir estos valores en `cdk.json` dentro del contexto (e.g. “sbx”) y leerlos en `app.py`/`stack.py`.
+Sugerencia: define estos valores en cdk.json dentro del contexto (por ejemplo “sbx”) y consúmelos en app/stack.
+## Estructura del repositorio (resumen)
+- lambdas/
+    - authorizer/
+    - get-calendars/
+    - get-appointments/
+    - get-user-appointment/
+    - create-appointment/
+    - edit-appointment/
+    - cancel-appointment/
 
+- layers/
+    - dependencies/
+        - python/ (paquetes de la layer)
 
-## Tablas DynamoDB
+- project/
+    - api_gateway.py (definición del API Gateway y rutas)
+    - lambdas.py (creación y configuración de Lambdas)
+    - permissions.py (políticas IAM y rol de ejecución)
+    - stack.py (stack principal)
+    - tables.py (tablas de DynamoDB)
 
-Tabla users_links (creada por `project/tables.py`):
-- Partition Key (PK): customerId (string)
-- Sort Key (SK): profile (string)
-- Item “perfil principal”:
-  - customerId: "<shopifyCustomerId>"
-  - profile: "les-aimants" (sentinela para el ítem canónico del perfil)
-  - email, shopDomain, firstName, lastName, phone
-  - acuityClientId (string)
-  - createdAt (epoch ms), updatedAt (epoch ms)
+- app.py (entrypoint CDK)
+- requirements.txt
+- requirements_layers.txt (opcional)
+- requests.http (ejemplos de pruebas manuales)
+- cdk.json
 
-Razón de diseño:
-- SK fijo (“profile”) permite colgar más ítems del mismo usuario en el futuro (auditoría, cache, preferencias) sin migrar esquema.
+## Configurar credenciales y perfil de AWS (CLI)
+1. Crear usuario IAM (consola web)
 
+- Usuario con acceso programático (Access key).
+- Permisos adecuados para CDK. En no productivo: AdministratorAccess (simple). En productivo: principio de mínimo privilegio (CloudFormation, S3, IAM, Lambda, API Gateway, DynamoDB, CloudWatch Logs, STS).
 
+1. Configurar perfil en AWS CLI
+``` bash
+aws configure --profile mi-perfil
+# AWS Access Key ID: <tu-access-key-id>
+# AWS Secret Access Key: <tu-secret-access-key>
+# Default region name: us-east-1
+# Default output format: json
+```
+1. Verificar identidad y región
+``` bash
+aws sts get-caller-identity --profile mi-perfil
+aws configure get region --profile mi-perfil
+```
+1. (Opcional) Exportar el perfil como variable de entorno
+``` bash
+# Linux/Mac
+export AWS_PROFILE=mi-perfil
+
+# Windows (PowerShell)
+# $Env:AWS_PROFILE = "mi-perfil"
+```
 ## Endpoints (API Gateway)
-
-Los recursos y métodos se definen en `project/api_gateway.py`. Ejemplo de mapeo:
-
-- POST /                → create-appointment (requiere authorizer)
-- PUT /                 → edit-appointment (requiere authorizer)
-- GET /                 → get-calendars (requiere authorizer)
-- POST /availability    → get-appointments (modo availability o appointments)
+- POST / → create-appointment (requiere authorizer)
+- PUT / → edit-appointment (requiere authorizer)
+- GET / → get-calendars (requiere authorizer)
+- POST /availability → get-appointments (availability o appointments)
 - POST /user-appointments → get-user-appointment (citas del usuario)
-- POST /cancel          → cancel-appointment (cancelar cita)
+- POST /cancel → cancel-appointment (cancelar cita)
 
 Autorización:
-- Lambda Authorizer (Token Authorizer) que espera Authorization: Bearer <customerAccessToken>.
-- El authorizer valida el token contra Shopify Storefront y adjunta al contexto:
-  - shopifyCustomerId, email, firstName, lastName, phone, shopDomain
+- Lambda Authorizer (Token Authorizer) que espera: Authorization: Bearer .
+- El authorizer adjunta al contexto: shopifyCustomerId, email, firstName, lastName, phone, shopDomain.
 
+## Tablas DynamoDB
+Tabla users_links:
+- PK: customerId (string)
+- SK: profile (string)
+- Ítem canónico de perfil:
+    - customerId: ""
+    - profile: "les-aimants"
+    - email, shopDomain, firstName, lastName, phone
+    - acuityClientId (string)
+    - createdAt (epoch ms), updatedAt (epoch ms)
 
-## Descripción de Lambdas
-
-- authorizer
-  - Valida el customerAccessToken contra Shopify Storefront GraphQL (customer(customerAccessToken: ...)).
-  - Si es válido, “Allow” y adjunta datos del cliente al context.
-- get-calendars
-  - GET https://acuityscheduling.com/api/v1/calendars
-  - Retorna data: [calendarios], meta: {resource: "calendars"}.
-- get-appointments
-  - resource="appointments": GET /appointments con minDate, maxDate, etc.
-  - resource="availability": GET /availability/times con date, etc.
-  - Retorna data con la respuesta original de Acuity.
-- get-user-appointment
-  - Resuelve el acuityClientId del usuario (Dynamo o lookup por email en Acuity).
-  - GET /appointments?clientID=...&minDate=...&maxDate=...
-  - 404 si no hay cliente o no hay citas; 200 con data si existen.
-- create-appointment
-  - Resuelve/crea cliente en Acuity si falta (por email).
-  - POST /appointments con datetime, calendarID, appointmentTypeID, clientID.
-  - 201 con data al crear.
-- edit-appointment
-  - Verifica que la cita pertenezca al usuario (GET /appointments/{id} y comparar clientID).
-  - action="update": PUT /appointments/{id} (notes, label, fields, admin).
-  - action="reschedule": PUT /appointments/{id}/reschedule (datetime, calendarID, timezone).
-- cancel-appointment
-  - Verifica propiedad (GET /appointments/{id}).
-  - PUT /appointments/{id}/cancel (opcional reason/notifyClient).
-
-
+Nota: SK fijo permite colgar más ítems del mismo usuario en el futuro (auditoría, cache, preferencias).
 ## Convenciones de manejo de errores
-
-- 200/201: operación exitosa (se retorna la respuesta original de Acuity dentro de “data”).
-- 400: parámetros faltantes o inválidos (validación Pydantic o chequeos en handler).
+- 200/201: operación exitosa (se retorna la respuesta original de Acuity dentro de data).
+- 400: parámetros faltantes o inválidos.
 - 401: falta info crítica del authorizer (shopifyCustomerId o email).
-- 404: recursos no encontrados o no pertenecen al usuario (citas inexistentes o vacías).
-- 502: error de upstream (Acuity) o fallos de red/timeout (incluir upstream.status y body cuando sea posible).
+- 404: recurso no encontrado o no pertenece al usuario.
+- 502: error de upstream (Acuity) o fallos de red/timeout (incluir upstream.status/body si es posible).
 - 500: error interno no controlado.
 
-Notas:
-- Nunca se exponen llaves/secretos en respuestas o logs.
-- ACUITY_USER_ID y ACUITY_API_KEY se asumen siempre presentes y no se validan en tiempo de ejecución.
+Buenas prácticas:
+- No exponer llaves/secretos en respuestas o logs.
+- ACUITY_USER_ID y ACUITY_API_KEY se asumen presentes.
 
-
-## Requisitos
-
-- Python 3.12
-- AWS CDK v2 instalado (CLI)
-- AWS credenciales configuradas (perfil con permisos suficientes)
-- virtualenv (recomendado)
-
-Dependencias:
-- requirements.txt: dependencias de CDK.
-- requirements_layers.txt (opcional): si agregas dependencias para la Lambda layer (por ejemplo, requests si no está incluida por defecto en el runtime o en tu layer).
-
-
-## Setup de desarrollo
-
-1) Crear entorno virtual
+## Despliegue (con perfil configurado)
+Pre-requisito (una sola vez por cuenta/región): Bootstrap de CDK (crea bucket de assets y roles base).
+1. Bootstrap
+``` bash
+cdk bootstrap aws://<ACCOUNT_ID>/<REGION> --profile mi-perfil
+# O si exportaste AWS_PROFILE:
+# cdk bootstrap aws://<ACCOUNT_ID>/<REGION>
 ```
-python3.12 -m venv .venv source .venv/bin/activate # Linux/Mac
-# .venv\Scripts\activate # Windows (PowerShell)
-``` 
-
-2) Instalar dependencias de CDK
+1. Synth (generar CloudFormation)
+``` bash
+cdk synth --profile mi-perfil
+# o: cdk synth
 ```
-pip install -r requirements.txt
-``` 
-
-3) (Opcional) Empaquetar layer de dependencias
-- Colocar librerías puras de Python en `layers/dependencies/python/`.
-- Si usas requirements_layers.txt, constrúyela y cópiala ahí.
-
-4) Configurar contexto (cdk.json)
-- Define en el contexto (por ejemplo clave “sbx”) los valores requeridos:
-  - ACUITY_USER_ID, ACUITY_API_KEY
-  - SHOPIFY_STORE_DOMAIN, SHOPIFY_STOREFRONT_ACCESS_TOKEN, SHOPIFY_API_VERSION
-- El nombre de la tabla users_links se deriva del stack y se pasa a los Lambdas via `USER_LINKS_TABLE`.
-
-
-## Despliegue
-
-1) Bootstrap (primera vez por cuenta/region)
+1. Deploy
+``` bash
+cdk deploy --profile mi-perfil
+# Opcional: pasar contexto/stage
+# cdk deploy -c stage=sbx --profile mi-perfil
 ```
-cdk bootstrap
-``` 
-
-2) Synth
-```
-cdk synth
-``` 
-
-3) Deploy
-```
-cdk deploy
-``` 
-
-El stack creará:
+Recursos que crea el stack:
 - Tabla DynamoDB users_links
 - Lambdas (authorizer, get-calendars, get-appointments, get-user-appointment, create-appointment, edit-appointment, cancel-appointment)
 - API Gateway con rutas y Lambda Authorizer
 
+## Pruebas rápidas
+- Usa requests.http como guía.
+- Autorización: header Authorization: Bearer <customerAccessToken_de_Shopify>.
+- Ejemplos de cuerpos:
+``` json
+// availability (get-appointments)
+{ "resource": "availability", "date": "YYYY-MM-DD", "appointmentTypeId": 123, "timezone": "America/Mexico_City" }
 
-## Pruebas
+// appointments (get-appointments)
+{ "resource": "appointments", "start_date": "YYYY-MM-DD", "end_date": "YYYY-MM-DD" }
 
-- requests.http contiene ejemplos que puedes adaptar.
-- Autorización:
-  - Envía el header Authorization: Bearer <customerAccessToken_de_Shopify>.
-- Cuerpos típicos:
-  - availability (get-appointments):
-    ```
-    { "resource": "availability", "date": "YYYY-MM-DD", "appointmentTypeId": 123, "timezone": "America/Mexico_City" }
-    ```
-  - appointments (get-appointments):
-    ```
-    { "resource": "appointments", "start_date": "YYYY-MM-DD", "end_date": "YYYY-MM-DD" }
-    ```
-  - create-appointment:
-    ```
-    { "datetime": "2025-09-20T10:00:00-05:00", "calendarID": 12345, "appointmentTypeID": 6789, "timezone": "America/Mexico_City" }
-    ```
-  - get-user-appointment:
-    ```
-    { "start_date": "YYYY-MM-DD", "end_date": "YYYY-MM-DD" }
-    ```
-  - edit-appointment (reschedule):
-    ```
-    { "action": "reschedule", "appointmentId": 11111, "datetime": "2025-09-21T10:00:00-05:00", "timezone": "America/Mexico_City" }
-    ```
-  - cancel-appointment:
-    ```
-    { "appointmentId": 11111, "reason": "Motivo (opcional)", "notifyClient": true }
-    ```
+// create-appointment
+{ "datetime": "2025-09-20T10:00:00-05:00", "calendarID": 12345, "appointmentTypeID": 6789, "timezone": "America/Mexico_City" }
 
+// get-user-appointment
+{ "start_date": "YYYY-MM-DD", "end_date": "YYYY-MM-DD" }
 
-## Buenas prácticas y notas
+// edit-appointment (reschedule)
+{ "action": "reschedule", "appointmentId": 11111, "datetime": "2025-09-21T10:00:00-05:00", "timezone": "America/Mexico_City" }
 
+// cancel-appointment
+{ "appointmentId": 11111, "reason": "Motivo (opcional)", "notifyClient": true }
+```
+## Notas y recomendaciones
 - Usa el calendarID que viene en los “slots” de availability al crear citas.
-- Mantén actualizado el vínculo Shopify↔Acuity (acuityClientId) en Dynamo para evitar lookups frecuentes.
-- Maneja las zonas horarias explícitamente (IANA TZ) para evitar errores de horario.
-- No hardcodees IDs de calendarios/appointment types si cambian con frecuencia; expón endpoints para descubrirlos (get-calendars).
-- Controla la latencia del authorizer (caché de resultados en API Gateway está habilitado por 1 hora).
-
+- Mantén el vínculo Shopify↔Acuity (acuityClientId) en Dynamo para evitar lookups frecuentes.
+- Maneja zonas horarias con IDs IANA para evitar errores.
+- Evita hardcodear IDs cambiantes; usa endpoints de descubrimiento (get-calendars).
+- Considera la latencia del authorizer; la caché de API Gateway ayuda.
 
 ## Soporte
-
-Para dudas o incidencias:
-- Revisa logs en CloudWatch por cada Lambda.
-- Verifica configuración del contexto (cdk.json) y variables inyectadas.
+- Verifica logs en CloudWatch por cada Lambda.
+- Revisa el contexto en cdk.json y variables inyectadas.
 - Valida credenciales de Acuity y Storefront de Shopify.
-
+- Asegura que el perfil de AWS tenga permisos adecuados para CDK.
