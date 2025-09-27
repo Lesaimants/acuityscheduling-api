@@ -28,13 +28,6 @@
       "aws",
       "aws-cn"
     ],
-    "sbx": {
-      "LOG_RETENTION_TIME": "TWO_MONTHS",
-      "ACUITY_USER_ID": "31532355",
-      "ACUITY_API_KEY": "f1d28177592296ae44d57cd84b3d3c5c",
-      "SHOPIFY_STORE_DOMAIN": "les-aimants.myshopify.com",
-      "SHOPIFY_STOREFRONT_ACCESS_TOKEN": "495be658c9a93ba95807d1a826ef63ea",
-      "SHOPIFY_API_VERSION": "2024-07"
-    }
+    "sbx": {}
   }
 }
